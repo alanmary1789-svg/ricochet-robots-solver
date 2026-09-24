@@ -38,3 +38,42 @@ def game(name: str):
         raise HTTPException(status_code=404, detail = f"Partie inconnue : {name}")
     return g.to_dict()
 
+from pydantic import BaseModel 
+from ricochet.solvers import solve_bfs, solve_dijkstra, solve_astar
+
+# --- Modèle décrivant ce que le navigateur envoie pour résoudre ---
+class SolveRequest(BaseModel):
+    game: str        # nom d'une partie du catalogue
+    algorithm: str   # "bfs", "dijkstra" ou "astar"
+
+
+# --- Table de correspondance nom -> fonction solveur ---
+SOLVERS = {
+    "bfs": solve_bfs,
+    "dijkstra": solve_dijkstra,
+    "astar": solve_astar,
+}
+
+
+@app.post("/solve")
+def solve(request: SolveRequest):
+    """Résout une partie avec l'algorithme demandé, renvoie coups + statistiques."""
+    g = get_game(request.game)
+    if g is None:
+        raise HTTPException(status_code=404, detail=f"Partie inconnue : {request.game}")
+
+    solver = SOLVERS.get(request.algorithm)
+    if solver is None:
+        raise HTTPException(status_code=400, detail=f"Algorithme inconnu : {request.algorithm}")
+
+    solution = solver(g)
+    if solution is None:
+        return {"solved": False}
+
+    return {
+        "solved": True,
+        "moves": solution.moves,
+        "length": len(solution),
+        "nodes_explored": solution.nodes_explored,
+        "elapsed": solution.elapsed,
+    }
