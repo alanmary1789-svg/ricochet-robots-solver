@@ -1,3 +1,10 @@
+// --- Données du jeu (seront chargées depuis l'API) ---
+let table = null;
+let startRobots = null;
+let target = null;
+
+const API = "http://127.0.0.1:8000";
+
 // --- Données du jeu ---
 const COLORS = ["red", "green", "blue", "yellow"];
 const ROBOT_COLORS = {
@@ -6,16 +13,26 @@ const ROBOT_COLORS = {
 const DIRECTIONS = { N: [0, -1], S: [0, 1], E: [1, 0], W: [-1, 0] };
 const OPPOSITE = { N: "S", S: "N", E: "W", W: "E" };
 
-const table = {
-  width: 8,
-  height: 8,
-  walls: [[3, 0, "E"], [5, 4, "S"], [5, 4, "W"]],
-};
 
-const startRobots = {
-  red: [0, 0], green: [7, 7], blue: [3, 7], yellow: [7, 3],
-};
-const target = { robot: "red", cell: [3, 6] };
+async function loadConfig() {
+  // récupère la partie (robots, cible, arrivée) et la table qu'elle référence
+  const gameResp = await fetch(`${API}/games/demo`);
+  const gameData = await gameResp.json();
+
+  const tableResp = await fetch(`${API}/tables/${gameData.table}`);
+  const tableData = await tableResp.json();
+
+  // remplit les variables du jeu à partir des données reçues
+  table = tableData;
+  target = { robot: gameData.target_robot, cell: gameData.target_cell };
+  startRobots = {};
+  for (const color of COLORS) {
+    startRobots[color] = gameData.robots[color];
+  }
+}
+
+
+
 
 // --- État courant (modifiable en jouant) ---
 let robots = structuredClone(startRobots);
@@ -33,8 +50,11 @@ function addWall(x, y, side) {
     wallSet.add(`${nx},${ny},${OPPOSITE[side]}`);
   }
 }
-for (const [x, y, side] of table.walls) addWall(x, y, side);
 
+function buildWallSet() {
+  wallSet.clear();
+  for (const [x, y, side] of table.walls) addWall(x, y, side);
+}
 function hasWall(x, y, side) { return wallSet.has(`${x},${y},${side}`); }
 function inBounds(x, y) { return x >= 0 && x < table.width && y >= 0 && y < table.height; }
 
@@ -60,7 +80,7 @@ function slide(start, direction) {
 // --- Dessin ---
 const canvas = document.getElementById("board");
 const ctx = canvas.getContext("2d");
-const CELL = canvas.width / table.width;
+let CELL;
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -162,5 +182,21 @@ function reset() {
 }
 document.getElementById("reset").addEventListener("click", reset);
 
-// --- Démarrage ---
-refresh();
+// --- Démarrage : on charge la config, PUIS on initialise le jeu ---
+async function start() {
+  try {
+    await loadConfig();
+  } catch (err) {
+    console.error("Impossible de charger la configuration depuis l'API :", err);
+    return;
+  }
+
+  // maintenant que table/startRobots/target sont remplis, on initialise
+  buildWallSet();
+  CELL = canvas.width / table.width; 
+  robots = structuredClone(startRobots);
+  refresh();
+}
+
+start();
+

@@ -2,7 +2,14 @@ from fastapi import FastAPI, HTTPException
 from ricochet.catalog import (list_table_names, get_table, 
                               list_game_names, get_game
                               )
+from fastapi.middleware.cors import CORSMiddleware 
 app = FastAPI(title="Ricochet Robots API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],        # autorise toutes les origines (OK en développement)
+    allow_methods=["*"],        # autorise GET, POST, etc.
+    allow_headers=["*"],
+)
 
 
 @app.get("/ping")
