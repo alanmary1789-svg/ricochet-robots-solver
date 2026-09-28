@@ -115,6 +115,46 @@ function computePreview() {
   previewRobots = state;
 }
 
+function drawPreviewArrow() {
+  console.log("drawPreviewArrow appelée — previewing:", previewing, "step:", solutionStep, "solution:", solution);
+  // seulement en preview, et seulement s'il reste un coup à venir
+  if (!previewing || solution === null) return;
+  if (solutionStep >= solution.length) return;
+
+  const [robotIndex, direction] = solution[solutionStep];
+  const color = COLORS[robotIndex];
+  const [x, y] = previewRobots[color];   // position du robot dans l'état de preview
+  const [dx, dy] = DIRECTIONS[direction];
+
+  const cx = x * CELL + CELL / 2;
+  const cy = y * CELL + CELL / 2;
+  const start_off = CELL / 2 - 4;              // on démarre au bord du robot
+  const sx = cx + dx * start_off;
+  const sy = cy + dy * start_off;
+  const ex = cx + dx * CELL * 1.1;             // et on va un peu au-delà de la case
+  const ey = cy + dy * CELL * 1.1;
+
+  ctx.strokeStyle = ROBOT_COLORS[color];
+  ctx.fillStyle = ROBOT_COLORS[color];
+  ctx.lineWidth = 4;
+
+  // la ligne
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  ctx.lineTo(ex, ey);
+  ctx.stroke();
+
+  // la pointe
+  const angle = Math.atan2(dy, dx);
+  const head = 10;
+  ctx.beginPath();
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(ex - head * Math.cos(angle - Math.PI / 6), ey - head * Math.sin(angle - Math.PI / 6));
+  ctx.lineTo(ex - head * Math.cos(angle + Math.PI / 6), ey - head * Math.sin(angle + Math.PI / 6));
+  ctx.closePath();
+  ctx.fill();
+}
+
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -150,6 +190,7 @@ function draw() {
       ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.stroke();
     }
   }
+  drawPreviewArrow();
 }
 
 
