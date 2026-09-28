@@ -326,6 +326,7 @@ async function showSolution() {
     }
 
     solution = data.moves;
+    displayStats(data);
     solutionStep = 0;        // on repart du début
     previewing = true;
     computePreview();        // calcule la preview à l'étape 0 (= position de départ)
@@ -348,4 +349,15 @@ function displaySolutionList() {
     span.textContent = `${i + 1}. ${color} ${arrow}`;
     container.appendChild(span);
   });
+}
+
+function displayStats(data) {
+  const container = document.getElementById("stats");
+  const seconds = data.elapsed.toFixed(4);
+  container.innerHTML = `
+    <div class="stat"><span class="stat-label">Algorithme</span><span class="stat-value">BFS</span></div>
+    <div class="stat"><span class="stat-label">Longueur</span><span class="stat-value">${data.length} coups</span></div>
+    <div class="stat"><span class="stat-label">Nœuds explorés</span><span class="stat-value">${data.nodes_explored}</span></div>
+    <div class="stat"><span class="stat-label">Temps</span><span class="stat-value">${seconds} s</span></div>
+  `;
 }

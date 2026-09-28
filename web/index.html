@@ -7,20 +7,36 @@
 </head>
 <body>
   <h1>Ricochet Robots</h1>
-  <canvas id="board" width="512" height="512"></canvas>
-  <div id="panel">
-    <button id="solve">Afficher la solution</button>
-    <div id="solution"></div>
-    <div id="legend"></div>
-    <p>Robot sélectionné : <strong id="selected"></strong> (touches 1-4 pour changer)</p>
-    <p>Coups : <strong id="count">0</strong></p>
-    <p id="status"></p>
-    <button id="reset">Réinitialiser</button>
-    <div id="preview-controls">
-      <button id="backward">◀ Précédent</button>
-      <button id="forward">Suivant ▶</button>
-      <button id="close-preview">Fermer</button>
+
+  <div id="layout">
+
+    <!-- Colonne gauche : la solution -->
+    <div id="left-col">
+      <button id="solve">Afficher la solution</button>
+      <div id="solution"></div>
+      <div id="preview-controls">
+        <button id="backward">◀ Précédent</button>
+        <button id="forward">Suivant ▶</button>
+        <button id="close-preview">Fermer</button>
+      </div>
     </div>
+
+    <!-- Colonne centre : le plateau et ses contrôles -->
+    <div id="center-col">
+      <canvas id="board" width="512" height="512"></canvas>
+      <div id="legend"></div>
+      <p>Robot sélectionné : <strong id="selected"></strong> (touches 1-4 pour changer)</p>
+      <p>Coups : <strong id="count">0</strong></p>
+      <p id="status"></p>
+      <button id="reset">Réinitialiser</button>
+    </div>
+
+    <!-- Colonne droite : les statistiques -->
+    <div id="right-col">
+      <h3>Statistiques</h3>
+      <div id="stats"></div>
+    </div>
+
   </div>
   <script src="game.js"></script>
 </body>
