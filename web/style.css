@@ -40,3 +40,6 @@ button { padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
   border-radius: 50%;
   display: inline-block;
 }
+
+.move { margin-right: 0.8rem; font-weight: bold; }
+#solution { margin-top: 0.8rem; }

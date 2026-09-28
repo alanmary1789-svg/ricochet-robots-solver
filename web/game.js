@@ -2,6 +2,10 @@
 let table = null;
 let startRobots = null;
 let target = null;
+let solution = null;        // liste des coups renvoyée par /solve
+let solutionStep = 0;       // combien de coups de la solution sont "joués" en preview
+let previewing = false;     // le mode prévisualisation est-il actif ?
+let previewRobots = null;   // état des robots affiché pendant la preview
 
 const API = "http://127.0.0.1:8000";
 
@@ -59,6 +63,19 @@ function hasWall(x, y, side) { return wallSet.has(`${x},${y},${side}`); }
 function inBounds(x, y) { return x >= 0 && x < table.width && y >= 0 && y < table.height; }
 
 // --- La règle de glissement (miroir fidèle du slide Python) ---
+function slideFrom(start, direction, occupied) {
+  const [dx, dy] = DIRECTIONS[direction];
+  let [x, y] = start;
+  while (true) {
+    if (hasWall(x, y, direction)) break;
+    const nx = x + dx, ny = y + dy;
+    if (!inBounds(nx, ny)) break;
+    if (occupied.has(`${nx},${ny}`)) break;
+    x = nx; y = ny;
+  }
+  return [x, y];
+}
+
 function slide(start, direction) {
   const [dx, dy] = DIRECTIONS[direction];
   let [x, y] = start;
@@ -81,6 +98,22 @@ function slide(start, direction) {
 const canvas = document.getElementById("board");
 const ctx = canvas.getContext("2d");
 let CELL;
+
+function computePreview() {
+  // repart du départ et applique les `solutionStep` premiers coups
+  const state = structuredClone(startRobots);
+  for (let k = 0; k < solutionStep; k++) {
+    const [robotIndex, direction] = solution[k];
+    const color = COLORS[robotIndex];
+    // cases occupées par les AUTRES robots, dans cet état de preview
+    const occupied = new Set();
+    for (const c of COLORS) {
+      if (c !== color) occupied.add(`${state[c][0]},${state[c][1]}`);
+    }
+    state[color] = slideFrom(state[color], direction, occupied);
+  }
+  previewRobots = state;
+}
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -106,7 +139,8 @@ function draw() {
   }
 
   for (const color of COLORS) {
-    const [x, y] = robots[color];
+    const source = previewing ? previewRobots : robots;
+    const [x, y] = source[color];
     ctx.fillStyle = ROBOT_COLORS[color];
     ctx.beginPath();
     ctx.arc(x*CELL + CELL/2, y*CELL + CELL/2, CELL/2 - 6, 0, 2*Math.PI);
@@ -117,6 +151,8 @@ function draw() {
     }
   }
 }
+
+
 
 // --- Interface (compteur, victoire) ---
 function updateInfo() {
@@ -165,6 +201,7 @@ document.addEventListener("keydown", (e) => {
   if (after[0] !== before[0] || after[1] !== before[1]) {
     robots[selected] = after;
     moveCount++;
+
     // victoire ?
     const [rx, ry] = robots[target.robot];
     const [cx, cy] = target.cell;
@@ -172,6 +209,30 @@ document.addEventListener("keydown", (e) => {
     refresh();
   }
 });
+
+function previewForward() {
+  if (!previewing || solution === null) return;
+  if (solutionStep < solution.length) {
+    solutionStep++;
+    computePreview();
+    refresh();
+  }
+}
+
+function previewBackward() {
+  if (!previewing || solution === null) return;
+  if (solutionStep > 0) {
+    solutionStep--;
+    computePreview();
+    refresh();
+  }
+}
+
+function closePreview() {
+  previewing = false;
+  previewRobots = null;
+  refresh();   // on redessine les vrais robots, la partie est intacte
+}
 
 // --- Bouton réinitialiser ---
 function reset() {
@@ -181,6 +242,12 @@ function reset() {
   refresh();
 }
 document.getElementById("reset").addEventListener("click", reset);
+
+document.getElementById("solve").addEventListener("click", showSolution);
+
+document.getElementById("forward").addEventListener("click", previewForward);
+document.getElementById("backward").addEventListener("click", previewBackward);
+document.getElementById("close-preview").addEventListener("click", closePreview);
 
 // --- Démarrage : on charge la config, PUIS on initialise le jeu ---
 async function start() {
@@ -200,3 +267,44 @@ async function start() {
 
 start();
 
+
+const DIR_ARROWS = { N: "↑", S: "↓", E: "→", W: "←" };
+
+async function showSolution() {
+  try {
+    const resp = await fetch(`${API}/solve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ game: "demo", algorithm: "bfs" }),
+    });
+    const data = await resp.json();
+
+    if (!data.solved) {
+      document.getElementById("solution").textContent = "Aucune solution trouvée.";
+      return;
+    }
+
+    solution = data.moves;
+    solutionStep = 0;        // on repart du début
+    previewing = true;
+    computePreview();        // calcule la preview à l'étape 0 (= position de départ)
+    displaySolutionList();
+    refresh();
+  } catch (err) {
+    console.error("Échec de l'appel à /solve :", err);
+  }
+}
+
+function displaySolutionList() {
+  const container = document.getElementById("solution");
+  container.innerHTML = "<strong>Solution :</strong> ";
+  solution.forEach((coup, i) => {
+    const color = COLORS[coup[0]];
+    const arrow = DIR_ARROWS[coup[1]];
+    const span = document.createElement("span");
+    span.className = "move";
+    span.style.color = ROBOT_COLORS[color];
+    span.textContent = `${i + 1}. ${color} ${arrow}`;
+    container.appendChild(span);
+  });
+}
