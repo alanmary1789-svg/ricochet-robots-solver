@@ -87,3 +87,17 @@ button { padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
 .stat-value {
   text-align: right;
 }
+
+.compare-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+.compare-table th, .compare-table td {
+  border: 1px solid #ccc;
+  padding: 0.3rem 0.5rem;
+  text-align: center;
+}
+.compare-table th {
+  background: #eee;
+}

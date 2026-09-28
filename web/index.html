@@ -12,7 +12,15 @@
 
     <!-- Colonne gauche : la solution -->
     <div id="left-col">
+        <label for="algo">Algorithme :
+        <select id="algo">
+          <option value="bfs">BFS</option>
+          <option value="dijkstra">Dijkstra</option>
+          <option value="astar">A*</option>
+        </select>
+      </label>
       <button id="solve">Afficher la solution</button>
+      <button id="compare">Comparer les algorithmes</button>
       <div id="solution"></div>
       <div id="preview-controls">
         <button id="backward">◀ Précédent</button>
@@ -34,6 +42,7 @@
     <!-- Colonne droite : les statistiques -->
     <div id="right-col">
       <h3>Statistiques</h3>
+      <div id="comparison"></div>
       <div id="stats"></div>
     </div>
 

@@ -286,6 +286,8 @@ document.getElementById("reset").addEventListener("click", reset);
 
 document.getElementById("solve").addEventListener("click", showSolution);
 
+document.getElementById("compare").addEventListener("click", compareAlgorithms);
+
 document.getElementById("forward").addEventListener("click", previewForward);
 document.getElementById("backward").addEventListener("click", previewBackward);
 document.getElementById("close-preview").addEventListener("click", closePreview);
@@ -313,10 +315,11 @@ const DIR_ARROWS = { N: "↑", S: "↓", E: "→", W: "←" };
 
 async function showSolution() {
   try {
+    const algo = document.getElementById("algo").value;
     const resp = await fetch(`${API}/solve`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ game: "demo", algorithm: "bfs" }),
+      body: JSON.stringify({ game: "demo", algorithm: algo }),    
     });
     const data = await resp.json();
 
@@ -326,7 +329,7 @@ async function showSolution() {
     }
 
     solution = data.moves;
-    displayStats(data);
+    displayStats(data, algo);
     solutionStep = 0;        // on repart du début
     previewing = true;
     computePreview();        // calcule la preview à l'étape 0 (= position de départ)
@@ -351,13 +354,60 @@ function displaySolutionList() {
   });
 }
 
-function displayStats(data) {
+function displayStats(data, algo) {
   const container = document.getElementById("stats");
   const seconds = data.elapsed.toFixed(4);
+  const ALGO_NAMES = { bfs: "BFS", dijkstra: "Dijkstra", astar: "A*" };
   container.innerHTML = `
-    <div class="stat"><span class="stat-label">Algorithme</span><span class="stat-value">BFS</span></div>
+    <div class="stat"><span class="stat-label">Algorithme</span><span class="stat-value">${ALGO_NAMES[algo]}</span></div>
     <div class="stat"><span class="stat-label">Longueur</span><span class="stat-value">${data.length} coups</span></div>
     <div class="stat"><span class="stat-label">Nœuds explorés</span><span class="stat-value">${data.nodes_explored}</span></div>
     <div class="stat"><span class="stat-label">Temps</span><span class="stat-value">${seconds} s</span></div>
   `;
+}
+
+const ALGORITHMS = ["bfs", "dijkstra", "astar"];
+const ALGO_LABELS = { bfs: "BFS", dijkstra: "Dijkstra", astar: "A*" };
+
+async function compareAlgorithms() {
+  try {
+    // lance les trois résolutions en parallèle
+    const requests = ALGORITHMS.map((algo) =>
+      fetch(`${API}/solve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ game: "demo", algorithm: algo }),
+      }).then((resp) => resp.json())
+    );
+    const results = await Promise.all(requests);
+
+    displayComparison(ALGORITHMS, results);
+  } catch (err) {
+    console.error("Échec de la comparaison :", err);
+  }
+}
+
+function displayComparison(algos, results) {
+  const container = document.getElementById("comparison");
+  let html = `
+    <h3>Comparaison</h3>
+    <table class="compare-table">
+      <tr>
+        <th>Algorithme</th>
+        <th>Longueur</th>
+        <th>Nœuds</th>
+        <th>Temps (s)</th>
+      </tr>`;
+  algos.forEach((algo, i) => {
+    const data = results[i];
+    html += `
+      <tr>
+        <td>${ALGO_LABELS[algo]}</td>
+        <td>${data.length}</td>
+        <td>${data.nodes_explored}</td>
+        <td>${data.elapsed.toFixed(4)}</td>
+      </tr>`;
+  });
+  html += `</table>`;
+  container.innerHTML = html;
 }
