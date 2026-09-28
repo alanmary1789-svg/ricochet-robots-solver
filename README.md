@@ -21,6 +21,10 @@ mais algorithmiquement riche.
   flèche directionnelle indiquant le prochain coup, sans modifier la partie.
 - **Comparer** les algorithmes côte à côte : longueur de la solution, nombre de
   nœuds explorés et temps de calcul.
+- **Générer** des plateaux et des parties aléatoires à l'infini : « Nouvelle
+  table » crée un plateau 16×16 avec bloc central (comme le jeu original) et une
+  partie ; « Nouvelle partie » tire une nouvelle configuration de robots sur la
+  même table. Chaque partie générée est garantie résoluble.
 
 ## Architecture
 
@@ -76,6 +80,12 @@ graphe d'états implicite à la volée.
   plutôt qu'à la découverte, ce qui l'amène à explorer davantage de nœuds.
 - A* guide la recherche avec une heuristique admissible, ce qui lui permet
   d'explorer moins de nœuds tout en garantissant l'optimalité.
+
+  La génération de parties illustre une belle réutilisation du solveur : une
+configuration de robots et de cible est tirée au hasard, puis **validée par le
+BFS** — on ne conserve que les parties effectivement résolubles, en régénérant
+tant qu'aucune solution n'existe. Le solveur, écrit pour résoudre, sert ainsi
+aussi à garantir la jouabilité.
 
 ## Tests
 
