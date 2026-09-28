@@ -6,6 +6,7 @@ let solution = null;        // liste des coups renvoyée par /solve
 let solutionStep = 0;       // combien de coups de la solution sont "joués" en preview
 let previewing = false;     // le mode prévisualisation est-il actif ?
 let previewRobots = null;   // état des robots affiché pendant la preview
+let currentConfig = null;   // { table, game } de la partie courante
 
 const API = "http://127.0.0.1:8000";
 
@@ -17,6 +18,53 @@ const ROBOT_COLORS = {
 const DIRECTIONS = { N: [0, -1], S: [0, 1], E: [1, 0], W: [-1, 0] };
 const OPPOSITE = { N: "S", S: "N", E: "W", W: "E" };
 
+function applyConfig(tableData, gameData) {
+  currentConfig = { table: tableData, game: gameData };
+  table = tableData;
+  target = { robot: gameData.target_robot, cell: gameData.target_cell };
+  startRobots = {};
+  for (const color of COLORS) {
+    startRobots[color] = gameData.robots[color];
+  }
+
+  // réinitialise complètement l'état du jeu
+  buildWallSet();
+  CELL = canvas.width / table.width;
+  robots = structuredClone(startRobots);
+  moveCount = 0;
+  won = false;
+  selected = "red";
+
+  // ferme toute prévisualisation en cours
+  previewing = false;
+  solution = null;
+  solutionStep = 0;
+  document.getElementById("solution").innerHTML = "";
+  document.getElementById("stats").innerHTML = "";
+  document.getElementById("comparison").innerHTML = "";
+
+  refresh();
+}
+
+async function newTable() {
+  try {
+    const resp = await fetch(`${API}/generate/table`, { method: "POST" });
+    const data = await resp.json();
+    applyConfig(data.table, data.game);
+  } catch (err) {
+    console.error("Échec de la génération de table :", err);
+  }
+}
+
+async function newGame() {
+  try {
+    const resp = await fetch(`${API}/generate/game`, { method: "POST" });
+    const data = await resp.json();
+    applyConfig(data.table, data.game);
+  } catch (err) {
+    console.error("Échec de la génération de partie :", err);
+  }
+}
 
 async function loadConfig() {
   // récupère la partie (robots, cible, arrivée) et la table qu'elle référence
@@ -33,6 +81,7 @@ async function loadConfig() {
   for (const color of COLORS) {
     startRobots[color] = gameData.robots[color];
   }
+  currentConfig = { table: tableData, game: gameData };
 }
 
 
@@ -116,7 +165,6 @@ function computePreview() {
 }
 
 function drawPreviewArrow() {
-  console.log("drawPreviewArrow appelée — previewing:", previewing, "step:", solutionStep, "solution:", solution);
   // seulement en preview, et seulement s'il reste un coup à venir
   if (!previewing || solution === null) return;
   if (solutionStep >= solution.length) return;
@@ -284,6 +332,9 @@ function reset() {
 }
 document.getElementById("reset").addEventListener("click", reset);
 
+document.getElementById("new-game").addEventListener("click", newGame);
+document.getElementById("new-table").addEventListener("click", newTable);
+
 document.getElementById("solve").addEventListener("click", showSolution);
 
 document.getElementById("compare").addEventListener("click", compareAlgorithms);
@@ -319,7 +370,11 @@ async function showSolution() {
     const resp = await fetch(`${API}/solve`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ game: "demo", algorithm: algo }),    
+      body: JSON.stringify({
+        table: currentConfig.table,
+        game: currentConfig.game,
+        algorithm: algo,
+      }),
     });
     const data = await resp.json();
 
@@ -376,7 +431,11 @@ async function compareAlgorithms() {
       fetch(`${API}/solve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ game: "demo", algorithm: algo }),
+        body: JSON.stringify({
+          table: currentConfig.table,
+          game: currentConfig.game,
+          algorithm: algo,
+        }),
       }).then((resp) => resp.json())
     );
     const results = await Promise.all(requests);
